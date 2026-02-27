@@ -5,13 +5,17 @@ from datetime import datetime
 
 st.title("Procesar Extracto Galicia")
 
-base_path = r"D:\Catamarca\Resumen Banco Fleteros.xlsm"
-archivo = st.file_uploader("Subí el extracto de Galicia (Excel)", type=["xls", "xlsx"])
+# Archivo base fijo dentro del repo
+BASE_FILE = "Resumen Banco Fleteros.xlsm"
+
+# Usuario sube el extracto diario
+archivo = st.file_uploader("Subí el extracto de Galicia (Excel)", type=["xls", "xlsx", "xlsm"])
 
 if archivo is not None:
-    if not os.path.exists(base_path):
-        st.error("No se encontró el archivo 'Resumen Banco Fleteros.xlsm' en la carpeta Catamarca.")
+    if not os.path.exists(BASE_FILE):
+        st.error("No se encontró el archivo 'Resumen Banco Fleteros.xlsm' en el repositorio.")
     else:
+        # Procesar extracto subido por el usuario
         galicia = pd.read_excel(archivo, header=5)
 
         galicia["Concepto"] = ""
@@ -46,9 +50,10 @@ if archivo is not None:
         total_transferencias_galicia = transferencias_validas.shape[0]
         total_monto_galicia = transferencias_validas["Crédito"].sum()
 
-        xls = pd.ExcelFile(base_path)
+        # Abrimos el archivo base del repo
+        xls = pd.ExcelFile(BASE_FILE)
         if "MaestroClientes" not in xls.sheet_names:
-            st.error("El archivo no tiene la hoja 'MaestroClientes'.")
+            st.error("El archivo base no tiene la hoja 'MaestroClientes'.")
         else:
             clientes = pd.read_excel(xls, sheet_name="MaestroClientes")
             clientes["CUIT"] = clientes["CUIT"].astype(str).str.strip()
@@ -64,7 +69,7 @@ if archivo is not None:
                         fleteros_list.append(nombre)
                 if st.button("Guardar fleteros iniciales"):
                     fleteros_df = pd.DataFrame({"Fletero": fleteros_list})
-                    with pd.ExcelWriter(base_path, mode="a", engine="openpyxl") as writer:
+                    with pd.ExcelWriter(BASE_FILE, mode="a", engine="openpyxl") as writer:
                         fleteros_df.to_excel(writer, sheet_name="Fleteros", index=False)
                     st.success("Fleteros iniciales guardados ✅")
             else:
@@ -107,15 +112,13 @@ if archivo is not None:
                     historial = resumen_fleteros.copy()
                     historial["Fecha"] = fecha_proceso
 
-                    # Si la hoja Historial no existe, se crea con encabezados
                     if "Historial" not in xls.sheet_names:
-                        with pd.ExcelWriter(base_path, mode="a", engine="openpyxl") as writer:
+                        with pd.ExcelWriter(BASE_FILE, mode="a", engine="openpyxl") as writer:
                             historial.to_excel(writer, sheet_name="Historial", index=False)
                     else:
-                        # Append al historial existente
                         historial_existente = pd.read_excel(xls, sheet_name="Historial")
                         historial_completo = pd.concat([historial_existente, historial], ignore_index=True)
-                        with pd.ExcelWriter(base_path, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
+                        with pd.ExcelWriter(BASE_FILE, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
                             historial_completo.to_excel(writer, sheet_name="Historial", index=False)
 
                     st.success(f"Historial guardado para la fecha {fecha_proceso} ✅")
