@@ -79,6 +79,19 @@ if archivo is not None:
                 galicia = galicia.merge(clientes, on="CUIT", how="left", suffixes=("", "_mc"))
                 galicia = galicia.drop_duplicates(subset=["CUIT","Crédito","Concepto"], keep="first")
 
+                # 🔎 NUEVO BLOQUE: Asignar fleteros a clientes si aún no están asignados
+                if "Fletero" not in galicia.columns or galicia["Fletero"].isna().all():
+                    st.subheader("Asignar fleteros a clientes")
+                    for idx, row in galicia.iterrows():
+                        cliente = row["Cliente"]
+                        cuit = row["CUIT"]
+                        fletero_asignado = st.selectbox(
+                            f"Cliente: {cliente} (CUIT {cuit})",
+                            options=[""] + lista_fleteros,
+                            key=f"fletero_{idx}"
+                        )
+                        galicia.at[idx, "Fletero"] = fletero_asignado
+
                 con_fletero = galicia[galicia["Fletero"].notna()]
                 if not con_fletero.empty:
                     resumen_fleteros = con_fletero.groupby("Fletero").agg(
